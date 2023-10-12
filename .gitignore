@@ -1,0 +1,5 @@
+# coverage file
+cover.*
+
+# editor setting
+.vscode
