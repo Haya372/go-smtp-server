@@ -1,5 +1,3 @@
-blitiri.com.ar/go/spf v1.5.1 h1:CWUEasc44OrANJD8CzceRnRn1Jv0LttY68cYym2/pbE=
-blitiri.com.ar/go/spf v1.5.1/go.mod h1:E71N92TfL4+Yyd5lpKuE9CAF2pd4JrUq1xQfkTxoNdk=
 github.com/Haya372/hlog v0.0.0-20230930081537-1e0e288a6041 h1:FKCB4aytNcfPVu1YFmKyVQh3ylVKYFh7PVQSpr7lovw=
 github.com/Haya372/hlog v0.0.0-20230930081537-1e0e288a6041/go.mod h1:nfvg6+6atcI+MUPfEBlEijBNqGJGt7L0v2TgCGcR+aI=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=

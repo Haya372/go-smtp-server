@@ -3,7 +3,6 @@ module github.com/Haya372/smtp-server
 go 1.21.1
 
 require (
-	blitiri.com.ar/go/spf v1.5.1
 	github.com/Haya372/hlog v0.0.0-20230930081537-1e0e288a6041
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.1

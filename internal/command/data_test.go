@@ -11,7 +11,7 @@ import (
 )
 
 func TestData_Command(t *testing.T) {
-	target := NewDataHandler(nil, nil)
+	target := NewDataHandler(nil)
 
 	assert.Equal(t, target.Command(), DATA)
 }
@@ -74,14 +74,13 @@ func TestData_Err(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			s := mock.NewInitializedMockSession(ctrl, test.sessionParam)
-			authService := mock.NewMockAuthService(ctrl)
 
 			if test.setupFunc != nil {
 				test.setupFunc(s)
 			}
 			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
 
-			target := NewDataHandler(log, authService)
+			target := NewDataHandler(log)
 			target.HandleCommand(context.TODO(), s, test.arg)
 		})
 	}
@@ -93,8 +92,7 @@ func TestData(t *testing.T) {
 
 	log := mock.NewInitializedMockLogger(ctrl)
 
-	authService := mock.NewMockAuthService(ctrl)
-	target := NewDataHandler(log, authService)
+	target := NewDataHandler(log)
 
 	s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
 		EnvelopeTo: []string{"to@example.com"},

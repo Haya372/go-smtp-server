@@ -5,13 +5,11 @@ import (
 	"errors"
 
 	"github.com/Haya372/hlog"
-	"github.com/Haya372/smtp-server/internal/service"
 	"github.com/Haya372/smtp-server/internal/session"
 )
 
 type dataHandler struct {
-	log         hlog.Logger
-	authService service.AuthService
+	log hlog.Logger
 }
 
 func (h *dataHandler) Command() string {
@@ -52,9 +50,8 @@ func (h *dataHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	return nil
 }
 
-func NewDataHandler(log hlog.Logger, authService service.AuthService) CommandHandler {
+func NewDataHandler(log hlog.Logger) CommandHandler {
 	return &dataHandler{
-		log:         log,
-		authService: authService,
+		log: log,
 	}
 }
