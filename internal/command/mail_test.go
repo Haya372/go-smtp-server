@@ -5,13 +5,15 @@ import (
 	"net/mail"
 	"testing"
 
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMail_Command(t *testing.T) {
-	target := NewMailHandler(nil)
+	conf := &config.SmtpConfig{}
+	target := NewMailHandler(nil, conf)
 	assert.Equal(t, MAIL, target.Command())
 }
 
@@ -24,6 +26,7 @@ func TestMail(t *testing.T) {
 	tests := []struct {
 		name                      string
 		arg                       []string
+		conf                      *config.SmtpConfig
 		expectEnvelopeFromAddress string
 	}{
 		{
@@ -36,8 +39,12 @@ func TestMail(t *testing.T) {
 			arg:  []string{"from:<>"},
 		},
 		{
-			name:                      "with SIZE param",
-			arg:                       []string{"from:<from@example.com>", "SIZE=100"},
+			name: "with SIZE param",
+			arg:  []string{"from:<from@example.com>", "SIZE=100"},
+			conf: &config.SmtpConfig{
+				EnableSize:  true,
+				MaxMailSize: 1000,
+			},
 			expectEnvelopeFromAddress: "<from@example.com>",
 		},
 	}
@@ -58,7 +65,7 @@ func TestMail(t *testing.T) {
 			s.EXPECT().SetEnvelopeFrom(expect).Times(1)
 			s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(MsgOk)).Times(1)
 
-			target := NewMailHandler(log)
+			target := NewMailHandler(log, test.conf)
 			target.HandleCommand(context.TODO(), s, test.arg)
 		})
 	}
@@ -73,6 +80,7 @@ func TestMail_Err(t *testing.T) {
 	tests := []struct {
 		name          string
 		arg           []string
+		conf          *config.SmtpConfig
 		senderDomain  string
 		alreadyCalled bool
 		code          int
@@ -106,29 +114,55 @@ func TestMail_Err(t *testing.T) {
 			msg:          MsgSyntaxError,
 		},
 		{
-			name:         "param error '=' not found",
-			arg:          []string{"from:<from@example.com>", "SIZE100"},
+			name: "param error '=' not found",
+			arg:  []string{"from:<from@example.com>", "SIZE100"},
+			conf: &config.SmtpConfig{
+				EnableSize:  true,
+				MaxMailSize: 1000,
+			},
 			senderDomain: "example.com",
 			code:         CodeOptionParamNotRecognized,
 			msg:          MsgOptionParamNotRecognized,
 		},
 		{
-			name:         "param error SIZE value not integer",
-			arg:          []string{"from:<from@example.com>", "SIZE=hoge"},
+			name: "param error SIZE value not integer",
+			arg:  []string{"from:<from@example.com>", "SIZE=hoge"},
+			conf: &config.SmtpConfig{
+				EnableSize:  true,
+				MaxMailSize: 1000,
+			},
 			senderDomain: "example.com",
 			code:         CodeArgumentSyntaxError,
 			msg:          MsgArgumentSyntaxError,
 		},
 		{
-			name:         "message size exceed limit",
-			arg:          []string{"from:<from@example.com>", "SIZE=1000000000"},
+			name: "message size exceed limit",
+			arg:  []string{"from:<from@example.com>", "SIZE=1000000000"},
+			conf: &config.SmtpConfig{
+				EnableSize:  true,
+				MaxMailSize: 1000,
+			},
 			senderDomain: "example.com",
 			code:         CodeAborted,
 			msg:          MsgAborted,
 		},
 		{
-			name:         "unknown option",
-			arg:          []string{"from:<from@example.com>", "UNKNOWN=hoge"},
+			name: "size option disabled",
+			arg:  []string{"from:<from@example.com>", "SIZE=1000000000"},
+			conf: &config.SmtpConfig{
+				EnableSize: false,
+			},
+			senderDomain: "example.com",
+			code:         CodeCommandParamNotImplemented,
+			msg:          MsgCommandParamNotImplemented,
+		},
+		{
+			name: "unknown option",
+			arg:  []string{"from:<from@example.com>", "UNKNOWN=hoge"},
+			conf: &config.SmtpConfig{
+				EnableSize:  true,
+				MaxMailSize: 1000,
+			},
 			senderDomain: "example.com",
 			code:         CodeCommandParamNotImplemented,
 			msg:          MsgCommandParamNotImplemented,
@@ -148,7 +182,7 @@ func TestMail_Err(t *testing.T) {
 
 			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
 
-			target := NewMailHandler(log)
+			target := NewMailHandler(log, test.conf)
 
 			target.HandleCommand(context.TODO(), s, test.arg)
 		})

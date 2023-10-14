@@ -5,11 +5,13 @@ import (
 	"errors"
 
 	"github.com/Haya372/hlog"
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/session"
 )
 
 type dataHandler struct {
-	log hlog.Logger
+	log  hlog.Logger
+	conf *config.SmtpConfig
 }
 
 func (h *dataHandler) Command() string {
@@ -38,7 +40,7 @@ func (h *dataHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	}
 
 	// TODO: 設定から最大のサイズを取得する
-	if len(rawData) > 1048576 {
+	if len(rawData) > h.conf.MaxMailSize {
 		s.Response(CodeAborted, MsgAborted)
 		return errors.New("message size exceed limit")
 	}
@@ -50,8 +52,9 @@ func (h *dataHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	return nil
 }
 
-func NewDataHandler(log hlog.Logger) CommandHandler {
+func NewDataHandler(log hlog.Logger, conf *config.SmtpConfig) CommandHandler {
 	return &dataHandler{
-		log: log,
+		log:  log,
+		conf: conf,
 	}
 }

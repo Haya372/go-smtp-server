@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/Haya372/hlog"
 	"github.com/Haya372/smtp-server/internal/command"
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/connection"
 	"github.com/Haya372/smtp-server/internal/server"
 	"github.com/Haya372/smtp-server/internal/session"
@@ -19,6 +20,10 @@ func main() {
 					Stdout:   true,
 				}
 			},
+			// TODO: 設定ファイルから読み込んだものを使用する
+			config.NewDefaultConfig,
+			config.NewServerConfig,
+			config.NewSmtpConfig,
 			hlog.NewLogger,
 			command.AsCommandHandler(command.NewHeloHandler),
 			command.AsCommandHandler(command.NewEhloHandler),

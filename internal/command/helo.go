@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"os"
 
 	"github.com/Haya372/hlog"
 	"github.com/Haya372/smtp-server/internal/session"
@@ -26,8 +27,8 @@ func (h *heloHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 
 	s.SetSenderDomain(arg[0])
 
-	// TODO: ホスト名に変更する
-	s.Response(CodeOk, "localhost")
+	hostname, _ := os.Hostname()
+	s.Response(CodeOk, hostname)
 	return nil
 }
 

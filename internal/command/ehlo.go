@@ -3,14 +3,17 @@ package command
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Haya372/hlog"
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/session"
 )
 
 type ehloHandler struct {
-	log hlog.Logger
+	log  hlog.Logger
+	conf *config.SmtpConfig
 }
 
 func (h *ehloHandler) Command() string {
@@ -29,17 +32,27 @@ func (h *ehloHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	s.SetSenderDomain(arg[0])
 
 	// TODO: ESMTPのレスポンス定義
-	// TODO: 設定から読み込む
-	s.ResponseLine(fmt.Sprintf("250-%s greets %s", "localhost", arg[0]))
-	s.ResponseLine("250-PIPELINING")
-	s.ResponseLine("250-8BITMIME")
-	s.ResponseLine(fmt.Sprintf("250-SIZE %d", 1048576)) // 1MB
+	hostname, _ := os.Hostname()
+	s.ResponseLine(fmt.Sprintf("%d-%s greets %s", CodeOk, hostname, arg[0]))
+	if h.conf.EnablePipelining {
+		s.ResponseLine(fmt.Sprintf("%d-PIPELINING", CodeOk))
+	}
+	if h.conf.Enable8BitMime {
+		s.ResponseLine(fmt.Sprintf("%d-8BITMIME", CodeOk))
+	}
+	if h.conf.EnableSize {
+		s.ResponseLine(fmt.Sprintf("%d-SIZE %d", CodeOk, h.conf.MaxMailSize))
+	}
+	if h.conf.EnableStartTls {
+		s.ResponseLine(fmt.Sprintf("%d-STARTTLS", CodeOk))
+	}
 	s.Response(CodeOk, strings.ToUpper(HELP))
 	return nil
 }
 
-func NewEhloHandler(log hlog.Logger) CommandHandler {
+func NewEhloHandler(log hlog.Logger, conf *config.SmtpConfig) CommandHandler {
 	return &ehloHandler{
-		log: log,
+		log:  log,
+		conf: conf,
 	}
 }

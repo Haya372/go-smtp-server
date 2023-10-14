@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/Haya372/hlog"
 	"github.com/Haya372/smtp-server/internal/command"
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/connection"
 	"github.com/Haya372/smtp-server/internal/session"
 	"golang.org/x/sync/semaphore"
@@ -77,14 +79,13 @@ func (s *Server) waitConnection(parentCtx context.Context) {
 	}
 }
 
-// TODO: 設定値を与える
-func NewServer(log hlog.Logger, connFactory session.SessionFactory, handler connection.SessionHandler) Server {
+func NewServer(log hlog.Logger, conf *config.ServerConfig, factory session.SessionFactory, handler connection.SessionHandler) Server {
 	return Server{
-		Port:              ":25",
-		ConnectionTimeout: 30 * time.Second,
+		Port:              fmt.Sprintf(":%d", conf.Port),
+		ConnectionTimeout: conf.ConnectionTimeout,
 		log:               log,
-		factory:           connFactory,
-		s:                 semaphore.NewWeighted(1),
+		factory:           factory,
+		s:                 semaphore.NewWeighted(int64(conf.MaxConnection)),
 		handler:           handler,
 	}
 }
