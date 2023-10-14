@@ -2,15 +2,19 @@ package command
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEhlo_Command(t *testing.T) {
-	target := NewEhloHandler(nil)
+	conf := &config.SmtpConfig{}
+	target := NewEhloHandler(nil, conf)
 
 	assert.Equal(t, EHLO, target.Command())
 }
@@ -20,6 +24,7 @@ func TestEhlo_Err(t *testing.T) {
 	defer ctrl.Finish()
 
 	log := mock.NewInitializedMockLogger(ctrl)
+	conf := &config.SmtpConfig{}
 
 	tests := []struct {
 		name string
@@ -41,7 +46,7 @@ func TestEhlo_Err(t *testing.T) {
 
 			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
 
-			target := NewEhloHandler(log)
+			target := NewEhloHandler(log, conf)
 			target.HandleCommand(context.TODO(), s, test.arg)
 		})
 	}
@@ -53,16 +58,48 @@ func TestEhlo(t *testing.T) {
 
 	log := mock.NewInitializedMockLogger(ctrl)
 
-	target := NewEhloHandler(log)
+	tests := []struct {
+		name  string
+		conf  *config.SmtpConfig
+		setup func(s *mock.MockSession)
+	}{
+		{
+			name: "no extension",
+			conf: &config.SmtpConfig{},
+			setup: func(s *mock.MockSession) {
+				s.EXPECT().ResponseLine(gomock.Any()).Times(1)
+			},
+		},
+		{
+			name: "enable all",
+			conf: &config.SmtpConfig{
+				EnablePipelining: true,
+				Enable8BitMime:   true,
+				EnableSize:       true,
+				EnableStartTls:   true,
+				MaxMailSize:      1,
+			},
+			setup: func(s *mock.MockSession) {
+				s.EXPECT().ResponseLine(gomock.Any()).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-PIPELINING", CodeOk))).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-8BITMIME", CodeOk))).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-SIZE %d", CodeOk, 1))).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-STARTTLS", CodeOk))).Times(1)
+			},
+		},
+	}
 
-	s := mock.NewMockSession(ctrl)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			target := NewEhloHandler(log, test.conf)
 
-	arg := []string{"test"}
+			s := mock.NewMockSession(ctrl)
+			s.EXPECT().Reset().Times(1)
+			s.EXPECT().SetSenderDomain("test")
+			test.setup(s)
+			s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(strings.ToUpper(HELP))).Times(1)
 
-	s.EXPECT().Reset().Times(1)
-	s.EXPECT().SetSenderDomain("test")
-	s.EXPECT().ResponseLine(gomock.Any()).AnyTimes()
-	s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Any())
-
-	target.HandleCommand(context.TODO(), s, arg)
+			target.HandleCommand(context.TODO(), s, []string{"test"})
+		})
+	}
 }

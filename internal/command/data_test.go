@@ -5,13 +5,15 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestData_Command(t *testing.T) {
-	target := NewDataHandler(nil)
+	conf := &config.SmtpConfig{}
+	target := NewDataHandler(nil, conf)
 
 	assert.Equal(t, target.Command(), DATA)
 }
@@ -21,6 +23,10 @@ func TestData_Err(t *testing.T) {
 	defer ctrl.Finish()
 
 	log := mock.NewInitializedMockLogger(ctrl)
+
+	conf := &config.SmtpConfig{
+		MaxMailSize: 1000,
+	}
 
 	tests := []struct {
 		name         string
@@ -80,7 +86,7 @@ func TestData_Err(t *testing.T) {
 			}
 			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
 
-			target := NewDataHandler(log)
+			target := NewDataHandler(log, conf)
 			target.HandleCommand(context.TODO(), s, test.arg)
 		})
 	}
@@ -92,7 +98,11 @@ func TestData(t *testing.T) {
 
 	log := mock.NewInitializedMockLogger(ctrl)
 
-	target := NewDataHandler(log)
+	conf := &config.SmtpConfig{
+		MaxMailSize: 1000,
+	}
+
+	target := NewDataHandler(log, conf)
 
 	s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
 		EnvelopeTo: []string{"to@example.com"},

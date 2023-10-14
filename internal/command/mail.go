@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/Haya372/hlog"
+	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/session"
 )
 
 type mailHandler struct {
-	log hlog.Logger
+	log  hlog.Logger
+	conf *config.SmtpConfig
 }
 
 func (h *mailHandler) Command() string {
@@ -83,20 +85,25 @@ func (h *mailHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 }
 
 func (h *mailHandler) handleSizeOption(ctx context.Context, s session.Session, arg string) error {
+	if !h.conf.EnableSize {
+		s.Response(CodeCommandParamNotImplemented, MsgCommandParamNotImplemented)
+		return errors.New("option SIZE not enabled")
+	}
 	size, err := strconv.Atoi(arg)
 	if err != nil {
 		s.Response(CodeArgumentSyntaxError, MsgArgumentSyntaxError)
 		return err
 	}
-	if size > 1048576 {
+	if size > h.conf.MaxMailSize {
 		s.Response(CodeAborted, MsgAborted)
 		return errors.New("message size exceed limit")
 	}
 	return nil
 }
 
-func NewMailHandler(log hlog.Logger) CommandHandler {
+func NewMailHandler(log hlog.Logger, conf *config.SmtpConfig) CommandHandler {
 	return &mailHandler{
-		log: log,
+		log:  log,
+		conf: conf,
 	}
 }
