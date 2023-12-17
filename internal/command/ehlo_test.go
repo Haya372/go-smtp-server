@@ -59,9 +59,10 @@ func TestEhlo(t *testing.T) {
 	log := mock.NewInitializedMockLogger(ctrl)
 
 	tests := []struct {
-		name  string
-		conf  *config.SmtpConfig
-		setup func(s *mock.MockSession)
+		name       string
+		conf       *config.SmtpConfig
+		setup      func(s *mock.MockSession)
+		alreadyTls bool
 	}{
 		{
 			name: "no extension",
@@ -87,6 +88,23 @@ func TestEhlo(t *testing.T) {
 				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-STARTTLS", CodeOk))).Times(1)
 			},
 		},
+		{
+			name: "already tls",
+			conf: &config.SmtpConfig{
+				EnablePipelining: true,
+				Enable8BitMime:   true,
+				EnableSize:       true,
+				EnableStartTls:   true,
+				MaxMailSize:      1,
+			},
+			setup: func(s *mock.MockSession) {
+				s.EXPECT().ResponseLine(gomock.Any()).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-PIPELINING", CodeOk))).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-8BITMIME", CodeOk))).Times(1)
+				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-SIZE %d", CodeOk, 1))).Times(1)
+			},
+			alreadyTls: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -98,6 +116,7 @@ func TestEhlo(t *testing.T) {
 			s.EXPECT().SetSenderDomain("test")
 			test.setup(s)
 			s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(strings.ToUpper(HELP))).Times(1)
+			s.EXPECT().IsTls().AnyTimes().Return(test.alreadyTls)
 
 			target.HandleCommand(context.TODO(), s, []string{"test"})
 		})

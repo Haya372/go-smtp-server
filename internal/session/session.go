@@ -1,6 +1,8 @@
 package session
 
 import (
+	"bufio"
+	"crypto/tls"
 	"net"
 	"net/mail"
 	"net/textproto"
@@ -45,6 +47,10 @@ type Session interface {
 	ResponseLine(line string)
 	// reset session state
 	Reset()
+	// check TLS conn
+	IsTls() bool
+	// update to TLS
+	ConvertToTls(tlsConf *tls.Config) error
 }
 
 type sessionImpl struct {
@@ -141,4 +147,24 @@ func (s *sessionImpl) Reset() {
 	s.envelopeFrom = nil
 	s.envelopeTo = make([]mail.Address, 0)
 	s.rawData = make([]byte, 0)
+}
+
+func (s *sessionImpl) IsTls() bool {
+	switch s.conn.(type) {
+	case *tls.Conn:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *sessionImpl) ConvertToTls(tlsConf *tls.Config) error {
+	conn := tls.Server(s.conn, tlsConf)
+	if err := conn.Handshake(); err != nil {
+		return err
+	}
+	s.conn = conn
+	s.reader = *textproto.NewReader(bufio.NewReader(conn))
+	s.writer = *textproto.NewWriter(bufio.NewWriter(conn))
+	return nil
 }

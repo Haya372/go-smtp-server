@@ -5,6 +5,7 @@
 package mock
 
 import (
+	tls "crypto/tls"
 	net "net"
 	mail "net/mail"
 	reflect "reflect"
@@ -70,6 +71,20 @@ func (m *MockSession) CloseImmediately() {
 func (mr *MockSessionMockRecorder) CloseImmediately() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseImmediately", reflect.TypeOf((*MockSession)(nil).CloseImmediately))
+}
+
+// ConvertToTls mocks base method.
+func (m *MockSession) ConvertToTls(tlsConf *tls.Config) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConvertToTls", tlsConf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ConvertToTls indicates an expected call of ConvertToTls.
+func (mr *MockSessionMockRecorder) ConvertToTls(tlsConf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConvertToTls", reflect.TypeOf((*MockSession)(nil).ConvertToTls), tlsConf)
 }
 
 // EnvelopeFrom mocks base method.
@@ -140,6 +155,20 @@ func (m *MockSession) IsCloseImmediately() bool {
 func (mr *MockSessionMockRecorder) IsCloseImmediately() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsCloseImmediately", reflect.TypeOf((*MockSession)(nil).IsCloseImmediately))
+}
+
+// IsTls mocks base method.
+func (m *MockSession) IsTls() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTls")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsTls indicates an expected call of IsTls.
+func (mr *MockSessionMockRecorder) IsTls() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTls", reflect.TypeOf((*MockSession)(nil).IsTls))
 }
 
 // RawData mocks base method.

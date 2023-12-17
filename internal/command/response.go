@@ -26,10 +26,11 @@ const (
 
 const (
 	// 正常系
-	MsgHelp  = "Following commands are implemented"
-	MsgGreet = "Service ready"
-	MsgQuit  = "Service closing transmission channel"
-	MsgOk    = "OK"
+	MsgHelp    = "Following commands are implemented"
+	MsgGreet   = "Service ready"
+	MsgQuit    = "Service closing transmission channel"
+	MsgOk      = "OK"
+	MsgGoAhead = "Go ahead"
 
 	MsgStartInput = "Start mail input; end with <CRLF>.<CRLF>"
 
@@ -40,6 +41,7 @@ const (
 	MsgSyntaxError                = "Syntax error, command unrecognized"
 	MsgArgumentSyntaxError        = "Syntax error in parameters or arguments"
 	MsgBadSequence                = "Bad sequence of commands"
+	MsgAlreadyTls                 = "TLS connection had already started"
 	MsgCommandParamNotImplemented = "Command parameter not implemented"
 	MsgCommandNotImplemented      = "Command not implemented"
 	MsgGreetFail                  = "No SMTP service here"

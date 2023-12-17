@@ -3,3 +3,7 @@ cover.*
 
 # editor setting
 .vscode
+
+# keys and certs for local test
+*.crt
+*.key

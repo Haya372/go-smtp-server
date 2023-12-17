@@ -24,6 +24,7 @@ func main() {
 			config.NewDefaultConfig,
 			config.NewServerConfig,
 			config.NewSmtpConfig,
+			config.NewTlsConfig,
 			hlog.NewLogger,
 			command.AsCommandHandler(command.NewHeloHandler),
 			command.AsCommandHandler(command.NewEhloHandler),
@@ -34,6 +35,7 @@ func main() {
 			command.AsCommandHandler(command.NewRsetHandler),
 			command.AsCommandHandler(command.NewQuitHandler),
 			command.AsCommandHandler(command.NewHelpHandler),
+			command.AsCommandHandler(command.NewStartTlsHandler),
 			session.NewSessionFactory,
 			fx.Annotate(
 				connection.NewSessionHandler,
