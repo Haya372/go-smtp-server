@@ -5,6 +5,7 @@ import "time"
 type Config struct {
 	Server *ServerConfig `yaml:"server"`
 	Smtp   *SmtpConfig   `yaml:"smtp"`
+	Tls    *TlsConfig    `yaml:"tls"`
 }
 
 func NewDefaultConfig() *Config {
@@ -18,9 +19,13 @@ func NewDefaultConfig() *Config {
 			EnablePipelining: true,
 			Enable8BitMime:   true,
 			EnableSize:       true,
-			EnableStartTls:   false,
+			EnableStartTls:   true,
 
 			MaxMailSize: 1048576,
+		},
+		Tls: &TlsConfig{
+			CertFilePath: "server.crt",
+			KeyFilePath:  "server.key",
 		},
 	}
 }

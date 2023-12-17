@@ -43,7 +43,7 @@ func (h *ehloHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	if h.conf.EnableSize {
 		s.ResponseLine(fmt.Sprintf("%d-SIZE %d", CodeOk, h.conf.MaxMailSize))
 	}
-	if h.conf.EnableStartTls {
+	if h.conf.EnableStartTls && !s.IsTls() {
 		s.ResponseLine(fmt.Sprintf("%d-STARTTLS", CodeOk))
 	}
 	s.Response(CodeOk, strings.ToUpper(HELP))
