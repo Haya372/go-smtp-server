@@ -8,7 +8,7 @@ import (
 )
 
 type CommandHandler interface {
-	HandleCommand(ctx context.Context, s session.Session, arg []string) error
+	HandleCommand(ctx context.Context, s *session.Session, arg []string) error
 	Command() string
 }
 

@@ -17,7 +17,7 @@ func (h *helpHandler) Command() string {
 	return HELP
 }
 
-func (h *helpHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *helpHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	s.ResponseLine(fmt.Sprintf("%d-%s", CodeHelp, MsgHelp))
 	supportCommands := []string{
 		HELO, EHLO, MAIL, RCPT, DATA, QUIT, RSET, NOOP, HELP,

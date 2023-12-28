@@ -2,9 +2,11 @@ package command
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,12 +38,12 @@ func TestHelo_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{})
+			s := session.NewMockSession(ctrl)
 
-			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewHeloHandler(log)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
 		})
 	}
 }
@@ -54,14 +56,16 @@ func TestHelo(t *testing.T) {
 
 	target := NewHeloHandler(log)
 
-	s := mock.NewMockSession(ctrl)
+	s := session.NewMockSession(ctrl)
 
 	arg := []string{"test"}
 
-	s.EXPECT().Reset().Times(1)
-	s.EXPECT().SetSenderDomain("test")
-	// TODO: 第２引数をホスト名に修正する
-	s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Any())
+	hostname, _ := os.Hostname()
+	s.ExpectResponse(CodeOk, hostname)
 
-	target.HandleCommand(context.TODO(), s, arg)
+	target.HandleCommand(context.TODO(), s.Session, arg)
+	assert.Equal(t, "test", s.Session.SenderDomain)
+	assert.Nil(t, s.Session.EnvelopeFrom)
+	assert.Empty(t, s.Session.EnvelopeTo)
+	assert.Empty(t, s.Session.RawData)
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,11 +23,14 @@ func TestRset(t *testing.T) {
 
 	target := NewRsetHandler(log)
 
-	s := mock.NewMockSession(ctrl)
-	s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(MsgOk)).Times(1)
-	s.EXPECT().Reset().Times(1)
+	s := session.NewMockSession(ctrl)
+	s.ExpectResponse(CodeOk, MsgOk)
 
-	target.HandleCommand(context.TODO(), s, make([]string, 0))
+	target.HandleCommand(context.TODO(), s.Session, make([]string, 0))
+	assert.Empty(t, s.Session.SenderDomain)
+	assert.Nil(t, s.Session.EnvelopeFrom)
+	assert.Empty(t, s.Session.EnvelopeTo)
+	assert.Empty(t, s.Session.RawData)
 }
 
 func TestRset_Err(t *testing.T) {
@@ -51,13 +55,14 @@ func TestRset_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{})
+			s := session.NewMockSession(ctrl)
+			s.Session.SenderDomain = "test"
 
-			s.EXPECT().Response(test.code, test.msg).Times(1)
-			s.EXPECT().Reset().Times(0)
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewRsetHandler(log)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
+			assert.NotEmpty(t, s.Session.SenderDomain)
 		})
 	}
 }

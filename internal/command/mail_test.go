@@ -7,6 +7,7 @@ import (
 
 	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,22 +52,19 @@ func TestMail(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
-				SenderDomain: "example.com",
-			})
+			s := session.NewMockSession(ctrl)
+			s.Session.SenderDomain = "example.com"
+			s.ExpectResponse(CodeOk, MsgOk)
 
+			target := NewMailHandler(log, test.conf)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
 			var expect *mail.Address
 			if len(test.expectEnvelopeFromAddress) != 0 {
 				expect, _ = mail.ParseAddress(test.expectEnvelopeFromAddress)
 			} else {
 				expect = &mail.Address{}
 			}
-
-			s.EXPECT().SetEnvelopeFrom(expect).Times(1)
-			s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(MsgOk)).Times(1)
-
-			target := NewMailHandler(log, test.conf)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			assert.Equal(t, s.Session.EnvelopeFrom, expect)
 		})
 	}
 }
@@ -171,20 +169,17 @@ func TestMail_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var envelopeFrom string
+			s := session.NewMockSession(ctrl)
+			s.Session.SenderDomain = test.senderDomain
 			if test.alreadyCalled {
-				envelopeFrom = "test@example.com"
+				s.Session.EnvelopeFrom = &mail.Address{Address: "test@example.com"}
 			}
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
-				SenderDomain: test.senderDomain,
-				EnvelopeFrom: envelopeFrom,
-			})
 
-			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewMailHandler(log, test.conf)
 
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
 		})
 	}
 }

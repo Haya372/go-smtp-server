@@ -15,7 +15,7 @@ func (h *quitHandler) Command() string {
 	return QUIT
 }
 
-func (h *quitHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *quitHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	// QUIT is not permit parameters
 	if len(arg) > 0 {
 		s.Response(CodeSyntaxError, MsgSyntaxError)
@@ -23,7 +23,7 @@ func (h *quitHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	}
 
 	s.Response(CodeQuit, MsgQuit)
-	s.CloseImmediately()
+	s.ShouldClose = true
 	return nil
 }
 

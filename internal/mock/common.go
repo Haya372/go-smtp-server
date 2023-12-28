@@ -4,7 +4,6 @@ import (
 	mail "net/mail"
 
 	gomock "github.com/golang/mock/gomock"
-	"github.com/google/uuid"
 )
 
 func NewAddressMatcher(address mail.Address) gomock.Matcher {
@@ -52,36 +51,6 @@ func NewInitializedMockLogger(ctrl *gomock.Controller) *MockLogger {
 	log.EXPECT().Fatalf(gomock.Any(), gomock.Any()).AnyTimes()
 
 	return log
-}
-
-type SessionMockParam struct {
-	IsCloseImmediately bool
-	SenderDomain       string
-	EnvelopeFrom       string
-	EnvelopeTo         []string
-	RawData            []byte
-}
-
-func NewInitializedMockSession(ctrl *gomock.Controller, p SessionMockParam) *MockSession {
-	s := NewMockSession(ctrl)
-
-	s.EXPECT().Id().Return(uuid.New()).AnyTimes()
-	s.EXPECT().SenderDomain().Return(p.SenderDomain).AnyTimes()
-	if len(p.EnvelopeFrom) == 0 {
-		s.EXPECT().EnvelopeFrom().Return(nil).AnyTimes()
-	} else {
-		address, _ := mail.ParseAddress(p.EnvelopeFrom)
-		s.EXPECT().EnvelopeFrom().Return(address).AnyTimes()
-	}
-	envelopeTo := make([]mail.Address, 0)
-	for _, to := range p.EnvelopeTo {
-		address, _ := mail.ParseAddress(to)
-		envelopeTo = append(envelopeTo, *address)
-	}
-	s.EXPECT().EnvelopeTo().Return(envelopeTo).AnyTimes()
-	s.EXPECT().RawData().Return(p.RawData).AnyTimes()
-
-	return s
 }
 
 func NewInitializedMockCommandHandler(ctrl *gomock.Controller, command string) *MockCommandHandler {

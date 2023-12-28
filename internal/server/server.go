@@ -61,7 +61,6 @@ func (s *Server) waitConnection(parentCtx context.Context) {
 		go func() {
 			defer s.wg.Done()
 			smtpSession := s.factory.CreateSession(conn)
-			// TODO: セマフォを取得できなければ抜ける
 			ctx, cancel := context.WithTimeout(parentCtx, 10*time.Millisecond)
 			defer cancel()
 

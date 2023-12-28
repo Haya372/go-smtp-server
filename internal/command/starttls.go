@@ -17,7 +17,7 @@ func (h *startTlsHandler) Command() string {
 	return STARTTLS
 }
 
-func (h startTlsHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h startTlsHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	if s.IsTls() {
 		s.Response(CodeBadSequence, MsgAlreadyTls)
 		return nil
@@ -25,7 +25,7 @@ func (h startTlsHandler) HandleCommand(ctx context.Context, s session.Session, a
 
 	s.Response(CodeGreet, MsgGoAhead)
 	if err := s.ConvertToTls(h.conf.TlsConfig); err != nil {
-		h.log.Errorf("[%d] tls error, err=%v", s.Id(), err)
+		h.log.Errorf("[%d] tls error, err=%v", s.Id, err)
 		s.Response(CodeTransactionFail, MsgTransactionFail)
 		return err
 	}

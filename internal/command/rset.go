@@ -15,7 +15,7 @@ func (h *rsetHandler) Command() string {
 	return RSET
 }
 
-func (h *rsetHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *rsetHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	// RSET is not permit parameters
 	if len(arg) > 0 {
 		s.Response(CodeSyntaxError, MsgSyntaxError)

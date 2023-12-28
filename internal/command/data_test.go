@@ -3,10 +3,12 @@ package command
 import (
 	"context"
 	"errors"
+	"net/mail"
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,47 +31,47 @@ func TestData_Err(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		sessionParam mock.SessionMockParam
-		arg          []string
-		setupFunc    func(s *mock.MockSession)
-		code         int
-		msg          string
+		name      string
+		arg       []string
+		setupFunc func(s *session.MockSession)
+		code      int
+		msg       string
 	}{
 		{
-			name:         "rcpt not called",
-			sessionParam: mock.SessionMockParam{},
-			code:         CodeBadSequence,
-			msg:          MsgBadSequence,
+			name: "rcpt not called",
+			code: CodeBadSequence,
+			msg:  MsgBadSequence,
 		},
 		{
 			name: "read raw data err",
-			sessionParam: mock.SessionMockParam{
-				EnvelopeTo: []string{"to@example.com"},
-			},
-			setupFunc: func(s *mock.MockSession) {
-				s.EXPECT().Response(CodeStartInput, MsgStartInput)
-				s.EXPECT().ReadRawData().Return(nil, errors.New("test error")).Times(1)
+			setupFunc: func(s *session.MockSession) {
+				s.Session.EnvelopeTo = []mail.Address{{Address: "to@example.com"}}
+				s.ExpectResponse(CodeStartInput, MsgStartInput)
+				s.ExpectReadLine("", errors.New("test error"))
+
 			},
 			code: CodeTransactionFail,
 			msg:  MsgTransactionFail,
 		},
 		{
 			name: "message size exceeds limit",
-			sessionParam: mock.SessionMockParam{
-				EnvelopeTo: []string{"to@example.com"},
-			},
-			setupFunc: func(s *mock.MockSession) {
-				s.EXPECT().Response(CodeStartInput, MsgStartInput)
-				s.EXPECT().ReadRawData().Return(make([]byte, 1000000000), nil).Times(1)
+			setupFunc: func(s *session.MockSession) {
+				s.Session.EnvelopeTo = []mail.Address{{Address: "to@example.com"}}
+				s.ExpectResponse(CodeStartInput, MsgStartInput)
+				data := "Subject: test\r\n\r\n"
+				for i := 0; i < conf.MaxMailSize; i++ {
+					data += "a"
+				}
+				data += "\r\n.\r\n"
+				s.ExpectReadLine(data, nil)
 			},
 			code: CodeAborted,
 			msg:  MsgAborted,
 		},
 		{
 			name: "with parameter",
-			sessionParam: mock.SessionMockParam{
-				EnvelopeTo: []string{"to@example.com"},
+			setupFunc: func(s *session.MockSession) {
+				s.Session.EnvelopeTo = []mail.Address{{Address: "to@example.com"}}
 			},
 			arg:  []string{"hoge"},
 			code: CodeSyntaxError,
@@ -79,15 +81,15 @@ func TestData_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, test.sessionParam)
+			s := session.NewMockSession(ctrl)
 
 			if test.setupFunc != nil {
 				test.setupFunc(s)
 			}
-			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewDataHandler(log, conf)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
 		})
 	}
 }
@@ -104,13 +106,16 @@ func TestData(t *testing.T) {
 
 	target := NewDataHandler(log, conf)
 
-	s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
-		EnvelopeTo: []string{"to@example.com"},
-	})
+	s := session.NewMockSession(ctrl)
+	s.Session.EnvelopeTo = make([]mail.Address, 1)
 
-	s.EXPECT().Response(gomock.Eq(CodeStartInput), gomock.Eq(MsgStartInput)).Times(1)
-	s.EXPECT().ReadRawData().Return([]byte("test"), nil).Times(1)
-	s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(MsgOk)).Times(1)
-	s.EXPECT().Reset().Times(1)
-	target.HandleCommand(context.TODO(), s, make([]string, 0))
+	s.ExpectResponse(CodeStartInput, MsgStartInput)
+	s.ExpectReadLine("Subject: test\r\n\r\n.\r\n", nil)
+	s.ExpectResponse(CodeOk, MsgOk)
+
+	target.HandleCommand(context.TODO(), s.Session, make([]string, 0))
+	assert.Empty(t, s.Session.SenderDomain)
+	assert.Nil(t, s.Session.EnvelopeFrom)
+	assert.Empty(t, s.Session.EnvelopeTo)
+	assert.Empty(t, s.Session.RawData)
 }

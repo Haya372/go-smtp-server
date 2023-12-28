@@ -2,10 +2,11 @@ package command
 
 import (
 	"context"
-	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,10 +24,14 @@ func TestHelp(t *testing.T) {
 
 	target := NewHelpHandler(log)
 
-	s := mock.NewMockSession(ctrl)
+	s := session.NewMockSession(ctrl)
 
-	s.EXPECT().ResponseLine(fmt.Sprintf("%d-%s", CodeHelp, MsgHelp))
-	s.EXPECT().Response(gomock.Eq(CodeHelp), gomock.Any()).Times(1)
+	s.ExpectResponseLine(CodeHelp, MsgHelp)
+	supportCommands := []string{
+		HELO, EHLO, MAIL, RCPT, DATA, QUIT, RSET, NOOP, HELP,
+	}
+	respStr := strings.ToUpper(strings.Join(supportCommands, " "))
+	s.ExpectResponse(CodeHelp, respStr)
 
-	target.HandleCommand(context.TODO(), s, make([]string, 0))
+	target.HandleCommand(context.TODO(), s.Session, make([]string, 0))
 }

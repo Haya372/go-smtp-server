@@ -15,7 +15,7 @@ func (h *noopHandler) Command() string {
 	return NOOP
 }
 
-func (h *noopHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *noopHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	s.Response(CodeOk, MsgOk)
 	return nil
 }
