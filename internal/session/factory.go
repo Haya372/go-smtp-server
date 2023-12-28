@@ -11,18 +11,18 @@ import (
 )
 
 type SessionFactory interface {
-	CreateSession(conn net.Conn) Session
+	CreateSession(conn net.Conn) *Session
 }
 
 type SessionFactoryImpl struct {
 	log hlog.Logger
 }
 
-func (f *SessionFactoryImpl) CreateSession(conn net.Conn) Session {
-	return &sessionImpl{
-		id:         uuid.New(),
-		envelopeTo: make([]mail.Address, 0),
-		conn:       conn,
+func (f *SessionFactoryImpl) CreateSession(conn net.Conn) *Session {
+	return &Session{
+		Id:         uuid.New(),
+		EnvelopeTo: make([]mail.Address, 0),
+		Conn:       conn,
 		log:        f.log,
 		reader:     *textproto.NewReader(bufio.NewReader(conn)),
 		writer:     *textproto.NewWriter(bufio.NewWriter(conn)),

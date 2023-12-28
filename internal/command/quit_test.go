@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,11 +23,11 @@ func TestQuit(t *testing.T) {
 
 	target := NewQuitHandler(log)
 
-	s := mock.NewMockSession(ctrl)
-	s.EXPECT().Response(gomock.Eq(CodeQuit), gomock.Eq(MsgQuit)).Times(1)
-	s.EXPECT().CloseImmediately().Times(1)
+	s := session.NewMockSession(ctrl)
+	s.ExpectResponse(CodeQuit, MsgQuit)
 
-	target.HandleCommand(context.TODO(), s, make([]string, 0))
+	target.HandleCommand(context.TODO(), s.Session, make([]string, 0))
+	assert.True(t, s.Session.ShouldClose)
 }
 
 func TestQuit_Err(t *testing.T) {
@@ -51,12 +52,13 @@ func TestQuit_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{})
+			s := session.NewMockSession(ctrl)
 
-			s.EXPECT().Response(test.code, test.msg).Times(1)
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewQuitHandler(log)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
+			assert.False(t, s.Session.ShouldClose)
 		})
 	}
 }

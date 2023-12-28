@@ -17,9 +17,9 @@ func (h *rcptHandler) Command() string {
 	return RCPT
 }
 
-func (h *rcptHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *rcptHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	// mail command should be called
-	if s.EnvelopeFrom() == nil {
+	if s.EnvelopeFrom == nil {
 		s.Response(CodeBadSequence, MsgBadSequence)
 		return nil
 	}
@@ -36,7 +36,7 @@ func (h *rcptHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 
 	address, err := mail.ParseAddress(addr)
 	if err != nil {
-		h.log.WithError(err).Debugf("[%s] failed to parse address %s", s.Id(), arg[0])
+		h.log.WithError(err).Debugf("[%s] failed to parse address %s", s.Id, arg[0])
 		s.Response(CodeSyntaxError, MsgSyntaxError)
 		return nil
 	}

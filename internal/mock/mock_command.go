@@ -50,7 +50,7 @@ func (mr *MockCommandHandlerMockRecorder) Command() *gomock.Call {
 }
 
 // HandleCommand mocks base method.
-func (m *MockCommandHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (m *MockCommandHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleCommand", ctx, s, arg)
 	ret0, _ := ret[0].(error)

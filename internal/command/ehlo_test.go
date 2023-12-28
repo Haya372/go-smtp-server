@@ -2,12 +2,15 @@ package command
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/config"
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,12 +45,12 @@ func TestEhlo_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{})
+			s := session.NewMockSession(ctrl)
 
-			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg)).Times(1)
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewEhloHandler(log, conf)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
 		})
 	}
 }
@@ -61,14 +64,15 @@ func TestEhlo(t *testing.T) {
 	tests := []struct {
 		name       string
 		conf       *config.SmtpConfig
-		setup      func(s *mock.MockSession)
+		setup      func(s *session.MockSession)
 		alreadyTls bool
 	}{
 		{
 			name: "no extension",
 			conf: &config.SmtpConfig{},
-			setup: func(s *mock.MockSession) {
-				s.EXPECT().ResponseLine(gomock.Any()).Times(1)
+			setup: func(s *session.MockSession) {
+				hostname, _ := os.Hostname()
+				s.ExpectResponseLine(CodeOk, fmt.Sprintf("%s greets %s", hostname, "test"))
 			},
 		},
 		{
@@ -80,12 +84,13 @@ func TestEhlo(t *testing.T) {
 				EnableStartTls:   true,
 				MaxMailSize:      1,
 			},
-			setup: func(s *mock.MockSession) {
-				s.EXPECT().ResponseLine(gomock.Any()).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-PIPELINING", CodeOk))).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-8BITMIME", CodeOk))).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-SIZE %d", CodeOk, 1))).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-STARTTLS", CodeOk))).Times(1)
+			setup: func(s *session.MockSession) {
+				hostname, _ := os.Hostname()
+				s.ExpectResponseLine(CodeOk, fmt.Sprintf("%s greets %s", hostname, "test"))
+				s.ExpectResponseLine(CodeOk, "PIPELINING")
+				s.ExpectResponseLine(CodeOk, "8BITMIME")
+				s.ExpectResponseLine(CodeOk, "SIZE 1")
+				s.ExpectResponseLine(CodeOk, "STARTTLS")
 			},
 		},
 		{
@@ -97,11 +102,12 @@ func TestEhlo(t *testing.T) {
 				EnableStartTls:   true,
 				MaxMailSize:      1,
 			},
-			setup: func(s *mock.MockSession) {
-				s.EXPECT().ResponseLine(gomock.Any()).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-PIPELINING", CodeOk))).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-8BITMIME", CodeOk))).Times(1)
-				s.EXPECT().ResponseLine(gomock.Eq(fmt.Sprintf("%d-SIZE %d", CodeOk, 1))).Times(1)
+			setup: func(s *session.MockSession) {
+				hostname, _ := os.Hostname()
+				s.ExpectResponseLine(CodeOk, fmt.Sprintf("%s greets %s", hostname, "test"))
+				s.ExpectResponseLine(CodeOk, "PIPELINING")
+				s.ExpectResponseLine(CodeOk, "8BITMIME")
+				s.ExpectResponseLine(CodeOk, "SIZE 1")
 			},
 			alreadyTls: true,
 		},
@@ -111,14 +117,19 @@ func TestEhlo(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			target := NewEhloHandler(log, test.conf)
 
-			s := mock.NewMockSession(ctrl)
-			s.EXPECT().Reset().Times(1)
-			s.EXPECT().SetSenderDomain("test")
-			test.setup(s)
-			s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(strings.ToUpper(HELP))).Times(1)
-			s.EXPECT().IsTls().AnyTimes().Return(test.alreadyTls)
+			s := session.NewMockSession(ctrl)
 
-			target.HandleCommand(context.TODO(), s, []string{"test"})
+			test.setup(s)
+			s.ExpectResponse(CodeOk, strings.ToUpper(HELP))
+			if test.alreadyTls {
+				s.Session.Conn = &tls.Conn{}
+			}
+
+			target.HandleCommand(context.TODO(), s.Session, []string{"test"})
+			assert.Equal(t, "test", s.Session.SenderDomain)
+			assert.Nil(t, s.Session.EnvelopeFrom)
+			assert.Empty(t, s.Session.EnvelopeTo)
+			assert.Empty(t, s.Session.RawData)
 		})
 	}
 }

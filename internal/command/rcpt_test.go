@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,14 +52,15 @@ func TestRcpt_Err(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
-				EnvelopeFrom: test.envelopeFrom,
-			})
+			s := session.NewMockSession(ctrl)
+			if len(test.envelopeFrom) > 0 {
+				s.Session.EnvelopeFrom = &mail.Address{Address: test.envelopeFrom}
+			}
 
-			s.EXPECT().Response(gomock.Eq(test.code), gomock.Eq(test.msg))
+			s.ExpectResponse(test.code, test.msg)
 
 			target := NewRcptHandler(log)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
 		})
 	}
 }
@@ -83,16 +85,16 @@ func TestRcpt(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := mock.NewInitializedMockSession(ctrl, mock.SessionMockParam{
-				EnvelopeFrom: "from@example.com",
-			})
+			s := session.NewMockSession(ctrl)
+			s.Session.EnvelopeFrom = &mail.Address{Address: "from@example.com"}
 
-			expect, _ := mail.ParseAddress(test.expectedEnvelopeTo)
-			s.EXPECT().AddEnvelopeTo(mock.NewAddressMatcher(*expect)).Times(1)
-			s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(MsgOk)).Times(1)
+			s.ExpectResponse(CodeOk, MsgOk)
 
 			target := NewRcptHandler(log)
-			target.HandleCommand(context.TODO(), s, test.arg)
+			target.HandleCommand(context.TODO(), s.Session, test.arg)
+
+			expect, _ := mail.ParseAddress(test.expectedEnvelopeTo)
+			assert.Contains(t, s.Session.EnvelopeTo, *expect)
 		})
 	}
 }

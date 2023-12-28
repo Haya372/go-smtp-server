@@ -20,7 +20,7 @@ func (h *ehloHandler) Command() string {
 	return EHLO
 }
 
-func (h *ehloHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *ehloHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	if len(arg) == 0 {
 		s.Response(CodeSyntaxError, MsgSyntaxError)
 		return nil
@@ -29,7 +29,7 @@ func (h *ehloHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	// when ehlo command is called, session state should be initialized
 	s.Reset()
 
-	s.SetSenderDomain(arg[0])
+	s.SenderDomain = arg[0]
 
 	// TODO: ESMTPのレスポンス定義
 	hostname, _ := os.Hostname()

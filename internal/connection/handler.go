@@ -17,20 +17,20 @@ type SessionHandler struct {
 	commandHandlers map[string]command.CommandHandler
 }
 
-func (h *SessionHandler) handleCommand(ctx context.Context, s session.Session, line string) {
+func (h *SessionHandler) handleCommand(ctx context.Context, s *session.Session, line string) {
 	cmd := strings.ToLower(strings.Fields(line)[0])
 	cmdHandler := h.commandHandlers[cmd]
 
 	if cmdHandler != nil {
 		cmdHandler.HandleCommand(ctx, s, strings.Fields(line)[1:])
 	} else {
-		h.log.Errorf("[%s] receive illegal command %s.", s.Id(), cmd)
+		h.log.Errorf("[%s] receive illegal command %s.", s.Id, cmd)
 		s.Response(command.CodeCommandNotImplemented, command.MsgCommandNotImplemented)
 	}
 }
 
-func (h *SessionHandler) HandleSession(ctx context.Context, s session.Session) {
-	h.log.Debugf("[%s] receive connection", s.Id())
+func (h *SessionHandler) HandleSession(ctx context.Context, s *session.Session) {
+	h.log.Debugf("[%s] receive connection", s.Id)
 	s.Response(command.CodeGreet, command.MsgGreet)
 	defer s.Close()
 
@@ -39,18 +39,18 @@ func (h *SessionHandler) HandleSession(ctx context.Context, s session.Session) {
 		if err != nil {
 			if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
 				// closed by client
-				h.log.Infof("[%s] connection closed.", s.Id())
+				h.log.Infof("[%s] connection closed.", s.Id)
 			} else {
-				h.log.WithError(err).Errorf("[%s] could not read line. %v", s.Id(), err)
+				h.log.WithError(err).Errorf("[%s] could not read line. %v", s.Id, err)
 				s.Response(command.CodeServiceNotAvailable, command.MsgServiceNotAvailable)
 			}
 			return
 		}
-		h.log.Debugf("[%s] received line: %s", s.Id(), line)
+		h.log.Debugf("[%s] received line: %s", s.Id, line)
 
 		h.handleCommand(ctx, s, line)
 
-		if s.IsCloseImmediately() {
+		if s.ShouldClose {
 			break
 		}
 	}

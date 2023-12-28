@@ -18,7 +18,7 @@ func (h *dataHandler) Command() string {
 	return DATA
 }
 
-func (h *dataHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *dataHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	// DATA is not permit parameters
 	if len(arg) > 0 {
 		s.Response(CodeSyntaxError, MsgSyntaxError)
@@ -26,7 +26,7 @@ func (h *dataHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	}
 
 	// rcpt command should be called
-	if len(s.EnvelopeTo()) == 0 {
+	if len(s.EnvelopeTo) == 0 {
 		s.Response(CodeBadSequence, MsgBadSequence)
 		return nil
 	}
@@ -34,18 +34,17 @@ func (h *dataHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	s.Response(CodeStartInput, MsgStartInput)
 	rawData, err := s.ReadRawData()
 	if err != nil {
-		h.log.WithError(err).Errorf("[%s] data reading error.", s.Id())
+		h.log.WithError(err).Errorf("[%s] data reading error.", s.Id)
 		s.Response(CodeTransactionFail, MsgTransactionFail)
 		return err
 	}
 
-	// TODO: 設定から最大のサイズを取得する
 	if len(rawData) > h.conf.MaxMailSize {
 		s.Response(CodeAborted, MsgAborted)
 		return errors.New("message size exceed limit")
 	}
 
-	h.log.Debugf("[%s] mail data received.\n----------\n%s----------", s.Id(), string(rawData))
+	h.log.Debugf("[%s] mail data received.\n----------\n%s----------", s.Id, string(rawData))
 
 	s.Response(CodeOk, MsgOk)
 	s.Reset()

@@ -21,14 +21,14 @@ func (h *mailHandler) Command() string {
 	return MAIL
 }
 
-func (h *mailHandler) HandleCommand(ctx context.Context, s session.Session, arg []string) error {
+func (h *mailHandler) HandleCommand(ctx context.Context, s *session.Session, arg []string) error {
 	// helo or ehlo command should be called
-	if len(s.SenderDomain()) == 0 {
+	if len(s.SenderDomain) == 0 {
 		s.Response(CodeBadSequence, MsgBadSequence)
 		return nil
 	}
 
-	if s.EnvelopeFrom() != nil {
+	if s.EnvelopeFrom != nil {
 		s.Response(CodeBadSequence, MsgBadSequence)
 		return nil
 	}
@@ -45,7 +45,7 @@ func (h *mailHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 	for _, line := range arg[1:] {
 		keyVal := strings.Split(line, "=")
 		if len(keyVal) != 2 {
-			h.log.Errorf("[%s] failed to recognized option %s", s.Id(), line)
+			h.log.Errorf("[%s] failed to recognized option %s", s.Id, line)
 			s.Response(CodeOptionParamNotRecognized, MsgOptionParamNotRecognized)
 			return nil
 		}
@@ -61,30 +61,30 @@ func (h *mailHandler) HandleCommand(ctx context.Context, s session.Session, arg 
 			s.Response(CodeCommandParamNotImplemented, MsgCommandParamNotImplemented)
 		}
 		if err != nil {
-			h.log.WithError(err).Errorf("[%s] failed to handle option %s", s.Id(), opt)
+			h.log.WithError(err).Errorf("[%s] failed to handle option %s", s.Id, opt)
 			return err
 		}
 	}
 
 	if addr == "<>" {
 		// Envelope From is null
-		s.SetEnvelopeFrom(&mail.Address{})
+		s.EnvelopeFrom = &mail.Address{}
 	} else {
 		address, err := mail.ParseAddress(addr)
 		if err != nil {
-			h.log.WithError(err).Debugf("[%s] failed to parse address %s", s.Id(), arg[0])
+			h.log.WithError(err).Debugf("[%s] failed to parse address %s", s.Id, arg[0])
 			s.Response(CodeSyntaxError, MsgSyntaxError)
 			return nil
 		}
 
-		s.SetEnvelopeFrom(address)
+		s.EnvelopeFrom = address
 	}
 
 	s.Response(CodeOk, MsgOk)
 	return nil
 }
 
-func (h *mailHandler) handleSizeOption(ctx context.Context, s session.Session, arg string) error {
+func (h *mailHandler) handleSizeOption(ctx context.Context, s *session.Session, arg string) error {
 	if !h.conf.EnableSize {
 		s.Response(CodeCommandParamNotImplemented, MsgCommandParamNotImplemented)
 		return errors.New("option SIZE not enabled")

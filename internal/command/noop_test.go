@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Haya372/smtp-server/internal/mock"
+	"github.com/Haya372/smtp-server/internal/session"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,8 +23,8 @@ func TestNoop(t *testing.T) {
 
 	target := NewNoopHandler(log)
 
-	s := mock.NewMockSession(ctrl)
-	s.EXPECT().Response(gomock.Eq(CodeOk), gomock.Eq(MsgOk)).Times(1)
+	s := session.NewMockSession(ctrl)
+	s.ExpectResponse(CodeOk, MsgOk)
 
-	target.HandleCommand(context.TODO(), s, make([]string, 0))
+	target.HandleCommand(context.TODO(), s.Session, make([]string, 0))
 }
