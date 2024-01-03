@@ -21,7 +21,8 @@ type AuthService interface {
 }
 
 type authServiceImpl struct {
-	log hlog.Logger
+	log      hlog.Logger
+	resolver spf.DNSResolver
 }
 
 func (s *authServiceImpl) Auth(ctx context.Context, mime data.MimeData) *data.AuthResult {
@@ -35,7 +36,14 @@ func (s *authServiceImpl) Auth(ctx context.Context, mime data.MimeData) *data.Au
 }
 
 func (s *authServiceImpl) spf(ctx context.Context, ip net.IP, helo string, sender string) authres.SPFResult {
-	res, err := spf.CheckHostWithSender(ip, helo, sender, spf.WithContext(ctx))
+	opts := []spf.Option{
+		spf.WithContext(ctx),
+	}
+	// for spf test
+	if s.resolver != nil {
+		opts = append(opts, spf.WithResolver(s.resolver))
+	}
+	res, err := spf.CheckHostWithSender(ip, helo, sender, opts...)
 	if err != nil {
 		s.log.WithError(err).Errorf("spf error")
 	}
@@ -86,7 +94,16 @@ func verifyDmarc(dmarcDomain, authDomain string, result authres.ResultValue, mod
 
 func (s *authServiceImpl) dmarc(ctx context.Context, authRes *data.AuthResult, from mail.Address) authres.DMARCResult {
 	dmarcDomain := getDomain(from)
-	record, err := dmarc.Lookup(dmarcDomain)
+	// for dmarc test
+	var opt *dmarc.LookupOptions
+	if s.resolver != nil {
+		opt = &dmarc.LookupOptions{
+			LookupTXT: func(domain string) ([]string, error) {
+				return s.resolver.LookupTXT(ctx, domain)
+			},
+		}
+	}
+	record, err := dmarc.LookupWithOptions(dmarcDomain, opt)
 	if err != nil {
 		if dmarc.IsTempFail(err) {
 			return authres.DMARCResult{
@@ -142,7 +159,14 @@ func (s *authServiceImpl) dmarc(ctx context.Context, authRes *data.AuthResult, f
 func (s *authServiceImpl) dkim(ctx context.Context, mime data.MimeData) []authres.DKIMResult {
 	reader := bytes.NewReader(mime.RawData)
 	// TODO: 設定から指定できるようにする
-	dkims, err := dkim.VerifyWithOptions(reader, &dkim.VerifyOptions{MaxVerifications: 3})
+	opt := &dkim.VerifyOptions{MaxVerifications: 3}
+	// for dkim test
+	if s.resolver != nil {
+		opt.LookupTXT = func(domain string) ([]string, error) {
+			return s.resolver.LookupTXT(ctx, domain)
+		}
+	}
+	dkims, err := dkim.VerifyWithOptions(reader, opt)
 	if err != nil {
 		s.log.WithError(err).Errorf("dkim error")
 	}
