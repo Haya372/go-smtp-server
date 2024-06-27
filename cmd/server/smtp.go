@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/Haya372/hlog"
 	"github.com/Haya372/smtp-server/internal/command"
 	"github.com/Haya372/smtp-server/internal/config"
@@ -41,11 +43,17 @@ func main() {
 				connection.NewSessionHandler,
 				fx.ParamTags(``, `group:"commandhandler"`),
 			),
-			server.NewServer,
+			func(lc fx.Lifecycle, log hlog.Logger, conf *config.ServerConfig, factory session.SessionFactory, handler connection.SessionHandler) *server.Server {
+				s := server.NewServer(log, conf, factory, handler)
+				lc.Append(fx.Hook{
+					OnStart: func(ctx context.Context) error {
+						return s.ListenSmtp(ctx)
+					},
+				})
+				return &s
+			},
 		),
-		fx.Invoke(func(svr server.Server) {
-			svr.ListenSmtp()
-		}),
+		fx.Invoke(func(s *server.Server) {}),
 	)
 	app.Run()
 }
