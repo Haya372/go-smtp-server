@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -27,7 +28,7 @@ type Server struct {
 	handler connection.SessionHandler
 }
 
-func (s *Server) ListenSmtp() error {
+func (s *Server) ListenSmtp(ctx context.Context) error {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", s.Port)
 	if err != nil {
 		return err
@@ -39,8 +40,7 @@ func (s *Server) ListenSmtp() error {
 	}
 
 	s.ln = ln
-	s.waitConnection(context.Background())
-
+	s.waitConnection(ctx)
 	return nil
 }
 
@@ -53,6 +53,10 @@ func (s *Server) waitConnection(parentCtx context.Context) {
 	for {
 		conn, err := s.ln.Accept()
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				s.log.Info("server closed.", nil)
+				return
+			}
 			s.log.WithError(err).Error("could not accept session.", nil)
 			continue
 		}
